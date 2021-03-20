@@ -43,7 +43,6 @@ int main(int argc, char* argv[]) {
     }
     cout << "starting at " << wps[0][0] << ", " << wps[0][1] << ", " << wps[0][2] << '\n';
     int wp_cnt = (int)wps.size();
-    vector<int> sp;
     vector<dk> aspects(wp_cnt);
     for (int i = 0; i < wp_cnt; i++) {
         aspects[i].d = std::numeric_limits<double>::infinity();
@@ -63,7 +62,6 @@ int main(int argc, char* argv[]) {
             }
         }
         aspects[min_i].k = true;
-        sp.push_back(min_i);
         if (i > 0) cout << "reached " << wps[min_i][0] << ", " << wps[min_i][1] << ", " << wps[min_i][2] << '\n';
         for (int j = 0; j < wp_cnt; j++) {
             if (!aspects[j].k) {
