@@ -12,9 +12,6 @@ using std::endl;
 using std::vector;
 using std::string;
 
-vector<vector<double>> wps;
-vector<bool> reached;
-
 void travel(int cur, int next) {
     unsigned int x = 1;
     while (x != 0) {
@@ -28,7 +25,7 @@ int main(int argc, char* argv[]) {
     double wpc; //waypoint component
     int dim = 0; //dimension
     int i = 0; //waypoint index
-    wps.resize(1);
+    vector<vector<double>> wps(1);
     wps[0].resize(3);
     while (ifs >> wpc) {
         if (dim > 2) {
