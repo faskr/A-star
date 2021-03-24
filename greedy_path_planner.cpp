@@ -13,7 +13,7 @@ using std::vector;
 using std::string;
 
 void travel(int cur, int next) {
-    unsigned int x = 1;
+    uint32_t x = 1;
     while (x != 0) {
         x++;
     }
@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
         wps[i][dim++] = wpc;
     }
     vector<double> cur = wps[0];
+    int cur_i = 0;
     cout << "starting at " << cur[0] << ", " << cur[1] << ", " << cur[2] << '\n';
     wps.erase(wps.begin());
     while (!wps.empty()) {
@@ -49,8 +50,9 @@ int main(int argc, char* argv[]) {
                 min_i = i;
             }
         }
-        //travel(cur, min_i);
+        travel(cur_i, min_i);
         cur = wps[min_i];
+        cur_i = min_i;
         wps.erase(wps.begin() + min_i);
         cout << "reached " << cur[0] << ", " << cur[1] << ", " << cur[2] << '\n';
     }

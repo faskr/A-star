@@ -18,7 +18,7 @@ struct dk {
 };
 
 void travel(int cur, int next) {
-    unsigned int x = 1;
+    uint32_t x = 1;
     while (x != 0) {
         x++;
     }
@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     }
     aspects[0].d = 0;
     int min_i = 0;
+    int cur_i = 0;
     double min_d;
     vector<double> diff(3);
     for (int i = 0; i < wp_cnt; i++) {
@@ -62,7 +63,11 @@ int main(int argc, char* argv[]) {
             }
         }
         aspects[min_i].k = true;
-        if (i > 0) cout << "reached " << wps[min_i][0] << ", " << wps[min_i][1] << ", " << wps[min_i][2] << '\n';
+        if (i > 0) {
+            travel(cur_i, min_i);
+            cur_i = min_i;
+            cout << "reached " << wps[min_i][0] << ", " << wps[min_i][1] << ", " << wps[min_i][2] << '\n';
+        }
         for (int j = 0; j < wp_cnt; j++) {
             if (!aspects[j].k) {
                 diff[0] = (double)wps[min_i][0] - (double)wps[j][0];
