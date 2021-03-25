@@ -13,13 +13,6 @@ using std::endl;
 using std::vector;
 using std::string;
 
-void travel(int cur, int next) {
-    uint32_t x = 1;
-    while (x != 0) {
-        x++;
-    }
-}
-
 int main(int argc, char* argv[]) {
     if (argc < 2) return 0;
     std::ifstream ifs(argv[1]);

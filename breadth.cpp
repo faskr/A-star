@@ -20,13 +20,6 @@ struct point {
     //int z;
 };
 
-void travel(int cur, int next) {
-    uint32_t x = 1;
-    while (x != 0) {
-        x++;
-    }
-}
-
 bool in_bounds(int x, int y, int width, int height) {
     return 0 <= x && x < width && 0 <= y && y < height;
 }
