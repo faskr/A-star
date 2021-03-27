@@ -44,8 +44,10 @@ int main(int argc, char* argv[]) {
         map[i].resize(height);
         prev[i].resize(height);
         reached[i].resize(height);
-        for (int j = 0; j < height; j++) {
-            ifs >> map[i][j];
+    }
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            ifs >> map[j][i];
         }
     }
     deque<point> border;
@@ -90,7 +92,7 @@ int main(int argc, char* argv[]) {
         cout << pt.x << ',' << pt.y << '\n';
     }
     cout << "\npath map:\n";
-    for (int i = height - 1; i >= 0; i--) {
+    for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             cout << reached[j][i] << ' ';
         }
