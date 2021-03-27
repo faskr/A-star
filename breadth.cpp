@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <deque>
+#include <queue>
 #include <math.h>
 #include <algorithm>
 #include <string>
