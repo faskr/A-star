@@ -56,37 +56,17 @@ public:
         return abs(p1.x - p2.x) + abs(p1.y - p2.y); // Manhattan distance
     }
 
-    /*
-    void update_sides();
-    vector<bool> check_update_costs();
-    void update_costs();
-    void push_border();
-    */
-
     void update_neighbors();
-
-    /*
-    bool check_update_cost_up();
-    bool check_update_cost_down();
-    bool check_update_cost_right();
-    bool check_update_cost_left();
-
-    void update_cost_up();
-    void update_cost_down();
-    void update_cost_right();
-    void update_cost_left();
-
-    void push_border_up();
-    void push_border_down();
-    void push_border_right();
-    void push_border_left();
-    */
-
     void find_path();
+
+    int output_path(int i, int j);
+    int output_search(int i, int j);
+    int output_cost(int i, int j);
+    void print_map(string type, int (Astar::*output)(int, int), char delim);
     void print_coords();
-    void print_map();
-    void print_map_with_border();
-    void print_cost_map();
+
+    //void print_map_with_border();
+    //void print_cost_map();
 };
 
 vector<vector<Astar::Info>> Astar::info;
@@ -95,52 +75,13 @@ vector<vector<Astar::Info>> Astar::info;
 class cheaper : public Astar {
 public:
     bool operator() (point p1, point p2) {
-        if (info[p1.x][p1.y].cost + heuristic(p1, goal) != info[p2.x][p2.y].cost + heuristic(p2, goal))
-            return info[p1.x][p1.y].cost + heuristic(p1, goal) > info[p2.x][p2.y].cost + heuristic(p2, goal);
-        return info[p1.x][p1.y].place > info[p2.x][p2.y].place;
+        double priority1 = info[p1.x][p1.y].cost + heuristic(p1, goal);
+        double priority2 = info[p2.x][p2.y].cost + heuristic(p2, goal);
+        //if (priority1 != priority2)
+            return priority1 > priority2;
+        //return info[p1.x][p1.y].place > info[p2.x][p2.y].place;
     }
 };
-
-/*
-void Astar::update_sides() {
-    sides[0] = {cur_pt.x, cur_pt.y + 1};
-    sides[1] = {cur_pt.x, cur_pt.y - 1};
-    sides[2] = {cur_pt.x + 1, cur_pt.y};
-    sides[3] = {cur_pt.x - 1, cur_pt.y};
-}
-
-vector<bool> Astar::check_update_costs() {
-    update_sides();
-    vector<bool> update{4};
-    for (int i = 0; i < 4; i++) {
-        update[i] = in_bounds(sides[i].x, sides[i].y, width, height) &&
-            (!info[sides[i].x][sides[i].y].visited || info[cur_pt.x][cur_pt.y].cost +
-            info[sides[i].x][sides[i].y].map < info[sides[i].x][sides[i].y].cost);
-    }
-    return update;
-}
-
-void Astar::update_costs() {
-    vector<bool> update = check_update_costs();
-    for (int i = 0; i < 4; i++) {
-        if (update[i]) {
-            info[sides[i].x][sides[i].y].cost = info[cur_pt.x][cur_pt.y].cost + info[sides[i].x][sides[i].y].map;
-            info[sides[i].x][sides[i].y].prev = cur_pt;
-            info[sides[i].x][sides[i].y].place = ++cur_place;
-        }
-    }
-}
-
-void Astar::push_border() {
-    for (point side : sides) {
-        if (!info[side.x][side.y].added) {
-            border.push_back({side.x, side.y});
-            std::push_heap(border.begin(), border.end(), cheaper());
-            info[side.x][side.y].added = true;
-        }
-    }
-}
-*/
 
 void Astar::update_neighbors() {
     vector<point> sides{4};
@@ -151,6 +92,7 @@ void Astar::update_neighbors() {
     bool update;
     bool add;
     for (point side : sides) {
+        // update cost if block is not visited and new cost is less than existing
         update = in_bounds(side.x, side.y, width, height) &&
             !info[side.x][side.y].visited && info[cur_pt.x][cur_pt.y].cost +
             info[side.x][side.y].map < info[side.x][side.y].cost;
@@ -159,6 +101,7 @@ void Astar::update_neighbors() {
             info[side.x][side.y].prev = cur_pt;
             info[side.x][side.y].place = ++cur_place;
         }
+        // push to border if not added already
         add = in_bounds(side.x, side.y, width, height) &&
             !info[side.x][side.y].added;
         if (add) {
@@ -169,96 +112,6 @@ void Astar::update_neighbors() {
     }
 }
 
-/*
-bool Astar::check_update_cost_up() {
-    return in_bounds(cur_pt.x, cur_pt.y + 1, width, height) &&
-        (!info[cur_pt.x][cur_pt.y + 1].visited || info[cur_pt.x][cur_pt.y].cost +
-        info[cur_pt.x][cur_pt.y + 1].map < info[cur_pt.x][cur_pt.y + 1].cost);
-}
-
-bool Astar::check_update_cost_down() {
-    return in_bounds(cur_pt.x, cur_pt.y - 1, width, height) &&
-        (!info[cur_pt.x][cur_pt.y - 1].visited || info[cur_pt.x][cur_pt.y].cost +
-        info[cur_pt.x][cur_pt.y - 1].map < info[cur_pt.x][cur_pt.y - 1].cost);
-}
-
-bool Astar::check_update_cost_right() {
-    return in_bounds(cur_pt.x + 1, cur_pt.y, width, height) &&
-        (!info[cur_pt.x + 1][cur_pt.y].visited || info[cur_pt.x][cur_pt.y].cost +
-        info[cur_pt.x + 1][cur_pt.y].map < info[cur_pt.x + 1][cur_pt.y].cost);
-}
-
-bool Astar::check_update_cost_left() {
-    return in_bounds(cur_pt.x - 1, cur_pt.y, width, height) &&
-        (!info[cur_pt.x - 1][cur_pt.y].visited || info[cur_pt.x][cur_pt.y].cost +
-        info[cur_pt.x - 1][cur_pt.y].map < info[cur_pt.x - 1][cur_pt.y].cost);
-}
-
-void Astar::update_cost_up() {
-    if (check_update_cost_up()) {
-        info[cur_pt.x][cur_pt.y + 1].cost = info[cur_pt.x][cur_pt.y].cost + info[cur_pt.x][cur_pt.y + 1].map;
-        info[cur_pt.x][cur_pt.y + 1].prev = cur_pt;
-        info[cur_pt.x][cur_pt.y + 1].place = ++cur_place;
-    }
-}
-
-void Astar::update_cost_down() {
-    if (check_update_cost_down()) {
-        info[cur_pt.x][cur_pt.y - 1].cost = info[cur_pt.x][cur_pt.y].cost + info[cur_pt.x][cur_pt.y - 1].map;
-        info[cur_pt.x][cur_pt.y - 1].prev = cur_pt;
-        info[cur_pt.x][cur_pt.y - 1].place = ++cur_place;
-    }
-}
-
-void Astar::update_cost_right() {
-    if (check_update_cost_right()) {
-        info[cur_pt.x + 1][cur_pt.y].cost = info[cur_pt.x][cur_pt.y].cost + info[cur_pt.x + 1][cur_pt.y].map;
-        info[cur_pt.x + 1][cur_pt.y].prev = cur_pt;
-        info[cur_pt.x + 1][cur_pt.y].place = ++cur_place;
-    }
-}
-
-void Astar::update_cost_left() {
-    if (check_update_cost_left()) {
-        info[cur_pt.x - 1][cur_pt.y].cost = info[cur_pt.x][cur_pt.y].cost + info[cur_pt.x - 1][cur_pt.y].map;
-        info[cur_pt.x - 1][cur_pt.y].prev = cur_pt;
-        info[cur_pt.x - 1][cur_pt.y].place = ++cur_place;
-    }
-}
-
-void Astar::push_border_up() {
-    if (!info[cur_pt.x][cur_pt.y + 1].added) {
-        border.push_back({cur_pt.x, cur_pt.y + 1});
-        std::push_heap(border.begin(), border.end(), cheaper());
-        info[cur_pt.x][cur_pt.y + 1].added = true;
-    }
-}
-
-void Astar::push_border_down() {
-    if (!info[cur_pt.x][cur_pt.y - 1].added) {
-        border.push_back({cur_pt.x, cur_pt.y - 1});
-        std::push_heap(border.begin(), border.end(), cheaper());
-        info[cur_pt.x][cur_pt.y - 1].added = true;
-    }
-}
-
-void Astar::push_border_right() {
-    if (!info[cur_pt.x + 1][cur_pt.y].added) {
-        border.push_back({cur_pt.x + 1, cur_pt.y});
-        std::push_heap(border.begin(), border.end(), cheaper());
-        info[cur_pt.x + 1][cur_pt.y].added = true;
-    }
-}
-
-void Astar::push_border_left() {
-    if (!info[cur_pt.x - 1][cur_pt.y].added) {
-        border.push_back({cur_pt.x - 1, cur_pt.y});
-        std::push_heap(border.begin(), border.end(), cheaper());
-        info[cur_pt.x - 1][cur_pt.y].added = true;
-    }
-}
-*/
-
 void Astar::print_coords() {
     cout << "\npath coordinates:\n";
     for (point pt : path) {
@@ -267,16 +120,7 @@ void Astar::print_coords() {
     }
 }
 
-void Astar::print_map() {
-    cout << "\npath map:\n";
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            cout << info[j][i].visited << ' ';
-        }
-        cout << '\n';
-    }
-}
-
+/*
 void Astar::print_map_with_border() {
     cout << "\nsearch map:\n";
     for (int i = 0; i < height; i++) {
@@ -296,30 +140,31 @@ void Astar::print_cost_map() {
         cout << '\n';
     }
 }
+*/
 
 void Astar::find_path() {
     info[pos.x][pos.y].cost = 0; //map[pos.x][pos.y];
     info[pos.x][pos.y].visited = true;
     info[pos.x][pos.y].added = true;
     border.push_back(pos);
-    while (!info[goal.x][goal.y].visited) { // TODO: maybe change to / add condition that border is empty, i.e. no more points in map to inspect
+    while (!info[goal.x][goal.y].visited) {
         // go to point with the lowest cost
         assert(!border.empty());
         cur_pt = border[0];
         // remove current point from border
         std::pop_heap(border.begin(), border.end(), cheaper());
         border.pop_back();
-        // update costs if less than existing
-        //update_costs();
-        // push to border if not added already
-        //push_border();
+        // update costs and add to border as needed
         update_neighbors();
         // current point has now been visited
         info[cur_pt.x][cur_pt.y].visited = true;
         // update border queue in case costs of elements were updated
         std::make_heap(border.begin(), border.end(), cheaper());
-        print_map_with_border();
-        print_cost_map();
+        // print
+        print_map("search", &Astar::output_search, ' ');
+        print_map("cost", &Astar::output_cost, '\t');
+        //print_map_with_border();
+        //print_cost_map();
     }
     cur_pt = goal;
     while (cur_pt.x != pos.x || cur_pt.y != pos.y) {
@@ -328,7 +173,29 @@ void Astar::find_path() {
     }
     path.push_front(cur_pt);
     print_coords();
-    print_map();
+    print_map("path", &Astar::output_path, ' ');
+}
+
+int Astar::output_path(int i, int j) {
+    return info[j][i].visited;
+}
+
+int Astar::output_search(int i, int j) {
+    return info[j][i].visited ? info[j][i].visited * 2 : info[j][i].added;
+}
+
+int Astar::output_cost(int i, int j) {
+    return info[j][i].cost > 99 ? -1 : info[j][i].cost;
+}
+
+void Astar::print_map(string type, int (Astar::*output)(int, int), char delim) {
+    cout << '\n' << type << " map:\n";
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            cout << (this->*output)(i, j) << delim;
+        }
+        cout << '\n';
+    }
 }
 
 int main(int argc, char* argv[]) {
