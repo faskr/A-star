@@ -34,14 +34,20 @@ public:
     void print_path();
     void print_cost_map();
     void print_search_map();
-    void move() { pos = goal; }
-    void set_block(point p, double cost) { info[p.x][p.y].map = cost; }
     point get_pos() { return pos; }
     point get_goal() { return goal; }
-    deque<point> find_path();
     deque<point> get_path() { return path; }
+    deque<point> find_path();
     double block_cost(point p) { return info[p.x][p.y].map; }
     double move_cost(point p) { return info[p.x][p.y].cost; }
+
+    void set_block(point p, double cost) {
+        if (info[p.x][p.y].map > -1) { // find_path shouldn't run twice
+            cout << "error: cannot set block value twice\n";
+            exit(1);
+        }
+        info[p.x][p.y].map = cost;
+    }
 
     bool in_bounds(point p) {
         return 0 <= p.x && p.x < width && 0 <= p.y && p.y < height;
@@ -75,7 +81,6 @@ private:
     }
 
     int output_cost(point p) {
-        
         return info[p.x][p.y].cost == std::numeric_limits<double>::max() ? -1 : info[p.x][p.y].cost;
     }
 
