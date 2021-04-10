@@ -20,6 +20,8 @@ struct point {
 
 // TODO: put everything related to class in header file
 // TODO: consider renaming Astar class or instances to path (or AstarPath) or journey or a synonym
+// TODO: write set_map function to set the entire map at once; consider making map a pointer to a map instead of stored values
+// TODO: documentation via comments
 class Astar {
 public:
     Astar(int h, int w, point p, point g) : height(h), width(w), pos(p), goal(g) {
@@ -52,7 +54,7 @@ public:
 private:
     struct Info {
         point prev;
-        double map;
+        double map; // TODO: change var name
         double cost;
         int added;
         int visited;
