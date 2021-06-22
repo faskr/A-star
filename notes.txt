@@ -1,0 +1,6 @@
+internal cost map
+	merged (done): consistent, but requires an external map which takes extra space (less than separate), and takes extra time to destroy and create new internal map to update it (more than separate)
+	separate (likely preferable): consistent, but takes extra space if external map exists (slightly more than merged if it does, less if not), and extra time to update the map (less than merged)
+external cost map
+	no reset on update: saves space and time in updating an extra map if external map is necessary, but somewhat inaccurate optimal path due to inconsistent costs
+	reset on update (most preferable): saves space if external map is necessary, but extra time to access external map (unknown compared to time to update internal), but user or map class has to ensure that path variables are reset every time map is updated

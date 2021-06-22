@@ -23,7 +23,7 @@ public:
     AstarPath2D(int h, int w, point p, point g) : height(h), width(w), pos(p), goal(g) {
         info.resize(width);
         for (int i = 0; i < width; i++) {
-            info[i].resize(height, {{0, 0, 0}, -1, std::numeric_limits<double>::max(), 0, 0});
+            info[i].resize(height, CellInfo());
         }
     }
     // Functions
@@ -42,6 +42,7 @@ public:
             cout << "error: cannot set block value twice\n";
             exit(1);
         }
+        map_cost_set = true;
         info[p.x][p.y].cell_cost = cost;
     }
     // set the cost of all cells at once
@@ -58,6 +59,15 @@ public:
 	    }
 	}
     }
+    // whether each cell is assigned a cost
+    bool each_cost_set() {
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                if (info[i][j].cell_cost == -1) return false;
+            }
+        }
+        return true;
+    }
     // whether a point is in the map
     bool in_bounds(point p) {
         return 0 <= p.x && p.x < width && 0 <= p.y && p.y < height;
@@ -70,11 +80,11 @@ public:
 private:
     // Structs
     struct CellInfo {
-        point prev;
-        double cell_cost;
-        double path_cost;
-        int added;
-        int visited;
+        point prev = {0, 0, 0};
+        double cell_cost = -1;
+        double path_cost = std::numeric_limits<double>::max();
+        int added = 0;
+        int visited = 0;
     };
     // Variables
     vector<vector<CellInfo>> info;
@@ -151,10 +161,9 @@ void AstarPath2D::update_neighbors() {
     bool new_cost_less;
     for (point side : sides) {
         if (!in_bounds(side)) continue;
-        // update cost if cell is not visited (i.e. not the cheapest border cell) and new cost is less than existing
+        // update cost if new is less than existing
         new_cost = info[cur_pt.x][cur_pt.y].path_cost + info[side.x][side.y].cell_cost;
-        new_cost_less = new_cost < info[side.x][side.y].path_cost;
-        if (!info[side.x][side.y].visited && new_cost_less) { // TODO: is checking for visited necessary or even efficient?
+        if (new_cost < info[side.x][side.y].path_cost) {
             info[side.x][side.y].path_cost = new_cost;
             info[side.x][side.y].prev = cur_pt;
         }
@@ -169,8 +178,13 @@ void AstarPath2D::update_neighbors() {
 
 // Find path according to A* algorithm
 deque<point> AstarPath2D::find_path() {
+    // make sure cost map is fully initialized
+    if (!map_cost_set || !each_cost_set()) {
+        cout << "error: some cell costs are not set\n";
+        exit(1);
+    }
     // set first border cell to starting point
-    info[pos.x][pos.y].path_cost = 0; //map[pos.x][pos.y];
+    info[pos.x][pos.y].path_cost = 0;
     info[pos.x][pos.y].visited = true;
     info[pos.x][pos.y].added = true;
     border.push_back(pos);
