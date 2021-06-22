@@ -1,5 +1,8 @@
+#include <string>
+#include <fstream>
 #include "AstarPath2D.h"
 
+// Read in map information, initialize A-star class, and run path finder
 int import_and_run(string filename) {
     std::ifstream ifs(filename);
     int height, width;
