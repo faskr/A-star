@@ -1,0 +1,9 @@
+NOTE: A* works because it uses minimum cost so far and minimum possible remaining cost to
+efficiently choose the best candidates for an optimal path, and to discard them when they
+begin to have worse potential than others, instead of blindly choosing paths equally. If
+the heuristic estimates a remaining cost that is more than the minimum possible, any paths
+that diminish the high estimates in favor of low real costs are cheaper and win out, which
+causes blocks closer to the goal to be eaten up so quickly that alternative routes that
+curve around, and are longer but cheaper, don't get considered before the goal is reached.
+Therefore, costs must not be smaller than the heuristic between any two points, i.e. they
+must be >= 1.
