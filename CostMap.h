@@ -16,6 +16,7 @@ struct point { // or cell or coords
     int y;
 };
 
+// Maybe TODO: change combine column/row editing functions to be more intuitive/efficient
 // TODO: test multiple runs with changes in the map
 // TODO: look at MAAV repos, figure out integration
 
