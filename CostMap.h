@@ -42,39 +42,35 @@ public:
         }
     }
     // Functions
-    void set_pos(point p) { pos = p; }
-    point get_pos() { return pos; }
-    void set_min(double m) { min = m; }
-    double get_min() { return min; }
-    int get_width() { return width; }
-    int get_height() { return height; }
     bool in_bounds(point p); // whether a point is in the map
     void set_cell_cost(point p, double cost); // set the cost of a single cell
-    double get_cell_cost(point p) { return cell_costs[p.x][p.y]; }
+    double get_cell_cost(point p); // get the cost of a single cell
     void add_columns(int n); // add n > 0 columns on the end of map or -n > 0 columns on the beginning of map
     void del_columns(int n); // delete n > 0 columns from the end of map or -n > 0 columns from the beginning of map
     void add_rows(int n); // add n > 0 rows on the end of map or -n > 0 rows on the beginning of map
     void del_rows(int n); // delete n > 0 rows from the end of map or -n > 0 rows from the beginning of map
+    // Variables
+    point pos;
+    double min;
+    int width;
+    int height;
 
     // ----- A* -----
     // Functions
+    double get_path_cost(point p); // cumulative cost of the minimum path to point p
     int heuristic(point p1, point p2); // heuristic cost of travel between two points (Manhattan distance)
-    double get_path_cost(point p) { return astar_data[p.x][p.y].path_cost; }
     deque<point> find_path(point g); // find the optimal path to a goal g using the A* algorithm
-    deque<point> get_path() { return path; }
-    point get_goal() { return goal; }
     void print_cost_map(); // print the cumulative cost of the minimum path to each cell evaluated so far
     void print_search_map(); // print evaluation status of each cell
     void print_path(); // print the coordinates of the cells the path runs through
+    // Variables
+    deque<point> path;
+    point goal;
 
 private:
     // ----- MAP -----
     // Variables
     deque<deque<double>> cell_costs;
-    point pos;
-    double min;
-    int width;
-    int height;
 
     // ----- A* -----
     // Structs
@@ -87,15 +83,13 @@ private:
     // Variables
     deque<deque<CellAstarData>> astar_data;
     vector<point> border;
-    deque<point> path;
-    point goal;
     point cur_pt;
     bool updated_since_astar = false;
     // Functions
     void reset_astar(); // prepare for next astar path search
     void update_neighbors(); // update attributes of neighboring cells (based on current cell attributes)
     int output_search(point p); // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
-    int output_path_cost(point p); // cumulative cost of the minimum path to point p
+    int output_path_cost(point p); // cumulative cost of the minimum path to point p, but replace max double values with 0
 };
 
 // determine which point has the lower cost according to the A* algorithm
@@ -106,8 +100,8 @@ public:
             cout << "error: two points from different path searches compared\n";
             exit(1);
         }
-        double p1_total = p1.map->get_path_cost(p1) + p1.map->heuristic(p1, p1.map->get_goal());
-        double p2_total = p2.map->get_path_cost(p2) + p2.map->heuristic(p2, p2.map->get_goal());
+        double p1_total = p1.map->get_path_cost(p1) + p1.map->heuristic(p1, p1.map->goal);
+        double p2_total = p2.map->get_path_cost(p2) + p2.map->heuristic(p2, p2.map->goal);
         return p1_total > p2_total;
     }
 };
@@ -130,6 +124,11 @@ void CostMap::set_cell_cost(point p, double cost) {
     }
     updated_since_astar = true;
     cell_costs[p.x][p.y] = cost;
+}
+
+// get the cost of a single cell
+double CostMap::get_cell_cost(point p) {
+    return cell_costs[p.x][p.y];
 }
 
 // add n > 0 columns on the end of map or -n > 0 columns on the beginning of map
@@ -201,6 +200,11 @@ void CostMap::del_rows(int n) {
 }
 
 // ----- A* -----
+
+// cumulative cost of the minimum path to point p
+double CostMap::get_path_cost(point p) {
+    return astar_data[p.x][p.y].path_cost;
+}
 
 // heuristic cost of travel between two points (Manhattan distance)
 int CostMap::heuristic(point p1, point p2) {
@@ -286,7 +290,7 @@ int CostMap::output_search(point p) {
     return astar_data[p.x][p.y].added ? astar_data[p.x][p.y].added : astar_data[p.x][p.y].visited * 2;
 }
 
-// cumulative cost of the minimum path to point p
+// cumulative cost of the minimum path to point p, but replace max double values with 0
 int CostMap::output_path_cost(point p) {
     return astar_data[p.x][p.y].path_cost == std::numeric_limits<double>::max() ? 0 : astar_data[p.x][p.y].path_cost;
 }
