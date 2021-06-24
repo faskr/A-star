@@ -17,10 +17,12 @@ struct point {
 };
 
 // TODO: documentation
-// TODO: fix print functions to account for changes in usage of .added and readding to border
-// TODO: fix test files to have a minimum cost of 1 (not guaranteed to find optimum path otherwise)
-// TODO: update the heuristic to something more applicable to the real world (esp. diagonal movement)
 // TODO: test multiple runs with changes in the map
+// TODO: look at MAAV repos, figure out integration
+// TODO: update the heuristic to something more applicable to the real world (esp. diagonal movement)
+// TODO: figure out how to get smooth paths without zigzagging (see diagonal above and 467 solution, might need entirely new implementation for this)
+// DONE: fix test files to have a minimum cost of 1 (not guaranteed to find optimum path otherwise)
+// DONE: fix print functions to account for changes in usage of .added and readding to border
 // DONE: organize functions in and below class
 // DONE: initialize cost to default value of 0 or 1 instead of -1 (probably 1, and get rid of failure to initialize errors), or have variable for minimum cost > 0
 
@@ -62,8 +64,6 @@ public:
     void del_columns(int n); // delete columns from map
     void add_rows(int n); // add rows to map
     void del_rows(int n); // delete rows from map
-    void print_cost_map();
-    //bool each_cost_set(); // whether each cell is assigned a cost
 
     // ----- A* -----
     // Functions
@@ -72,8 +72,9 @@ public:
     deque<point> find_path(point g); // find path according to A* algorithm
     deque<point> get_path() { return path; }
     point get_goal() { return goal; }
-    void print_path();
-    void print_search_map();
+    void print_cost_map(); // print minimum cumulative cost of path for each cell evaluated so far
+    void print_search_map(); // print evaluation status of each cell
+    void print_path(); // print list of coordinates on the path
 
 private:
     // ----- MAP -----
@@ -89,8 +90,8 @@ private:
     struct CellAstarData { // or [Cell]AstarInfo or CellPath[Data/Info]
         point prev = {0, 0, 0};
         double path_cost = std::numeric_limits<double>::max();
-        int added = 0;
-        int visited = 0;
+        bool added = 0;
+        int visited = 0; // only for record keeping
     };
     // Variables
     deque<deque<CellAstarData>> astar_data;
@@ -102,7 +103,7 @@ private:
     // Functions
     void reset_astar(); // prepare for next astar run
     void update_neighbors(); // update attributes of neighboring cells (based on current cell attributes)
-    int output_search(point p); // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost determined), 3 = path (minimum cost)
+    int output_search(point p); // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
     int output_cost(point p); // path cost of point
 };
 
@@ -127,10 +128,18 @@ bool CostMap::in_bounds(point p) {
 }
 
 void CostMap::set_cell_cost(point p, double cost) {
+    if (cost <= 0) {
+        cout << "error: cost must be positive\n";
+        exit(1);
+    }
+    else if (cost < min) {
+        cout << "warning: cost less than heuristic minimum; solution not guaranteed to be optimal\n";
+    }
     updated_since_astar = true;
     cell_costs[p.x][p.y] = cost;
 }
 
+// TODO: figure out what to do about invalid costs in this function, or whether to have this function at all
 void CostMap::set_map_cost(const deque<deque<double>> &costs) {
     updated_since_astar = true;
     width = costs.size();
@@ -141,17 +150,6 @@ void CostMap::set_map_cost(const deque<deque<double>> &costs) {
         astar_data[i].resize(height);
     }
 }
-
-/*
-bool CostMap::each_cost_set() {
-    for (int i = 0; i < width; i++) {
-	    for (int j = 0; j < height; j++) {
-	        if (cell_costs[i][j] == -1) return false;
-	    }
-    }
-    return true;
-}
-*/
 
 void CostMap::add_columns(int n) {
     updated_since_astar = true;
@@ -217,15 +215,6 @@ void CostMap::del_rows(int n) {
     }
 }
 
-void CostMap::print_cost_map() {
-    cout << "\ncost map:\n";
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++)
-            cout << output_cost({ this, j, i }) << '\t';
-        cout << '\n';
-    }
-}
-
 // ----- A* -----
 
 int CostMap::heuristic(point p1, point p2) {
@@ -272,11 +261,6 @@ deque<point> CostMap::find_path(point g) {
     // if map hasn't changed since last run, results will be the same; otherwise, reset and start over
     if (!updated_since_astar) return path;
     else reset_astar();
-    /*// make sure cost map is fully initialized
-    if (!each_cost_set()) {
-        cout << "error: some cell costs are not set\n";
-        exit(1);
-    }*/
     // set first border cell to starting point
     astar_data[pos.x][pos.y].path_cost = 0;
     astar_data[pos.x][pos.y].visited = true;
@@ -285,9 +269,8 @@ deque<point> CostMap::find_path(point g) {
     // almost last spot before A* uses cost map (i.e. last spot when A* is guaranteed to be relying on up-to-date data)
     updated_since_astar = false;
     // expand border until goal is reached
-    while (!astar_data[goal.x][goal.y].visited) {
+    while (border[0].x != goal.x || border[0].y != goal.y) {
         cur_pt = border[0]; // go to point with the lowest cost
-        cout << "cur = " << cur_pt.x << ", " << cur_pt.y << "\n";
         astar_data[cur_pt.x][cur_pt.y].visited = true;
         std::pop_heap(border.begin(), border.end(), cheaper());
         border.pop_back(); // remove current point from border
@@ -299,6 +282,7 @@ deque<point> CostMap::find_path(point g) {
     }
     // reconstruct path from end to beginning
     cur_pt = goal;
+    astar_data[cur_pt.x][cur_pt.y].visited = true;
     while (cur_pt.x != pos.x || cur_pt.y != pos.y) {
         path.push_front(cur_pt);
         cur_pt = astar_data[cur_pt.x][cur_pt.y].prev;
@@ -309,14 +293,23 @@ deque<point> CostMap::find_path(point g) {
     return path;
 }
 
-// search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost determined), 3 = path (minimum cost)
+// search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
 int CostMap::output_search(point p) {
     if (astar_data[p.x][p.y].visited == 2) return 3;
-    return astar_data[p.x][p.y].visited ? astar_data[p.x][p.y].visited * 2 : astar_data[p.x][p.y].added;
+    return astar_data[p.x][p.y].added ? astar_data[p.x][p.y].added : astar_data[p.x][p.y].visited * 2;
 }
 
 int CostMap::output_cost(point p) {
     return astar_data[p.x][p.y].path_cost == std::numeric_limits<double>::max() ? 0 : astar_data[p.x][p.y].path_cost;
+}
+
+void CostMap::print_cost_map() {
+    cout << "\ncost map:\n";
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++)
+            cout << output_cost({ this, j, i }) << '\t';
+        cout << '\n';
+    }
 }
 
 void CostMap::print_search_map() {
