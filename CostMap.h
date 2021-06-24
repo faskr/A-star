@@ -18,11 +18,6 @@ struct point { // or cell or coords
 
 // TODO: test multiple runs with changes in the map
 // TODO: look at MAAV repos, figure out integration
-// DONE: documentation
-// DONE: fix test files to have a minimum cost of 1 (not guaranteed to find optimum path otherwise)
-// DONE: fix print functions to account for changes in usage of .added and readding to border
-// DONE: organize functions in and below class
-// DONE: initialize cost to default value of 0 or 1 instead of -1 (probably 1, and get rid of failure to initialize errors), or have variable for minimum cost > 0
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
