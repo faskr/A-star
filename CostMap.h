@@ -16,6 +16,23 @@ struct point {
     int y;
 };
 
+// TODO: fix print functions to account for changes in usage of .added and readding to border
+// TODO: organize functions in and below class
+// TODO: documentation
+// TODO: fix test files to have a minimum cost of 1 (not guaranteed to find optimum path otherwise)
+// TODO: initialize cost to default value of 0 or 1 instead of -1 (probably 1, and get rid of failure to initialize errors)
+// TODO: update the heuristic to something more applicable to the real world (esp. diagonal movement)
+
+// NOTE: A* works because it uses minimum cost so far and minimum possible remaining cost to
+// efficiently choose the best candidates for an optimal path, and to discard them when they
+// begin to have worse potential than others, instead of blindly choosing paths equally. If
+// the heuristic estimates a remaining cost that is more than the minimum possible, any paths
+// that diminish the high estimates in favor of low real costs are cheaper and win out, which
+// causes blocks closer to the goal to be eaten up so quickly that alternative routes that
+// curve around, and are longer but cheaper, don't get considered before the goal is reached.
+// Therefore, costs must not be smaller than the heuristic between any two points, i.e. they
+// must be >= 1.
+
 // Class for finding the A* path between two points given a map of location-specific travel costs
 class CostMap {
 public:
@@ -236,9 +253,9 @@ int CostMap::output_cost(point p) {
 
 void CostMap::reset_astar() {
     for (int i = 0; i < width; i++) {
-	for (int j = 0; j < height; j++) {
-	    astar_data[i][j] = CellAstarData();
-	}
+	    for (int j = 0; j < height; j++) {
+	        astar_data[i][j] = CellAstarData();
+	    }
     }
     border.clear();
 }
@@ -258,12 +275,12 @@ void CostMap::update_neighbors() {
         if (new_cost < astar_data[side.x][side.y].path_cost) {
             astar_data[side.x][side.y].path_cost = new_cost;
             astar_data[side.x][side.y].prev = cur_pt;
-        }
-        // push to border if not added already
-        if (!astar_data[side.x][side.y].added) {
-            border.push_back({this, side.x, side.y});
-            std::push_heap(border.begin(), border.end(), cheaper());
-            astar_data[side.x][side.y].added = true;
+            // push to border if not added already
+            if (!astar_data[side.x][side.y].added) {
+                border.push_back({this, side.x, side.y});
+                std::push_heap(border.begin(), border.end(), cheaper());
+                astar_data[side.x][side.y].added = true;
+            }
         }
     }
 }
@@ -289,9 +306,11 @@ deque<point> CostMap::find_path(point g) {
     // expand border until goal is reached
     while (!astar_data[goal.x][goal.y].visited) {
         cur_pt = border[0]; // go to point with the lowest cost
+        cout << "cur = " << cur_pt.x << ", " << cur_pt.y << "\n";
         astar_data[cur_pt.x][cur_pt.y].visited = true;
         std::pop_heap(border.begin(), border.end(), cheaper());
         border.pop_back(); // remove current point from border
+        astar_data[cur_pt.x][cur_pt.y].added = false;
         update_neighbors(); // update costs and add to border as needed
         std::make_heap(border.begin(), border.end(), cheaper()); // update border in case element costs updated
         print_search_map();

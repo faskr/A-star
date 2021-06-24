@@ -1,0 +1,54 @@
+cell cost map:
+7	3	0	10
+9	6	7	0
+4	0	0	0
+8	0	0	4
+
+My 1st CostMap implementation:
+path cost map:
+0	3	3	13	
+9	9	10	10	
+13	9	9	10	
+18	9	10	14
+search map:
+2	2	2	1
+2	2	2	2
+1	2	2	2
+1	2	2	2
+
+My 2nd CostMap (Wiki & Stanford) implementation:
+path cost map:
+0	3	3	13
+9	9	10	9
+13	9	9	9
+17	9	9	13
+search map:
+2	2	2	1
+1	2	2	2
+1	2	2	2
+1	2	2	2
+
+Map where heuristic fails:
+7	3	0	10
+9	6	7	0
+4	0	0	0
+8	0	0	0
+
+My 2nd CostMap implementation:
+path cost map:
+0   3   3   13
+9   9   10  10
+-1  -1  10  10
+-1  -1  -1  10
+search map:
+2   2   2   1
+1   1   2   2
+0   0   1   2
+0   0   1   2
+
+Optimal path:
+path cost map:
+0   3   3   9
+9   9   10  9
+13  9   9   9
+17  9   9   9
