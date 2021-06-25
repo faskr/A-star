@@ -16,7 +16,6 @@ struct point { // or cell or coords
     int y;
 };
 
-// Maybe TODO: change combine column/row editing functions to be more intuitive/efficient
 // TODO: look at MAAV repos, figure out integration
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
@@ -40,10 +39,10 @@ public:
     bool in_bounds(point p); // whether a point is in the map
     void set_cell_cost(point p, double cost); // set the cost of a single cell
     double get_cell_cost(point p); // get the cost of a single cell
-    void add_columns(int n); // add n > 0 columns on the end of map or -n > 0 columns on the beginning of map
-    void del_columns(int n); // delete n > 0 columns from the end of map or -n > 0 columns from the beginning of map
-    void add_rows(int n); // add n > 0 rows on the end of map or -n > 0 rows on the beginning of map
-    void del_rows(int n); // delete n > 0 rows from the end of map or -n > 0 rows from the beginning of map
+    void reshape_top(int n); // add n > 0 or remove -n > 0 rows to/from the top side of the cost map
+    void reshape_bottom(int n); // add n > 0 or remove -n > 0 rows to/from the bottom side of the cost map
+    void reshape_right(int n); // add n > 0 or remove -n > 0 columns to/from the right side of the cost map
+    void reshape_left(int n); // add n > 0 or remove -n > 0 columns to/from the left side of the cost map
     // Variables
     point pos;
     double min;
@@ -127,72 +126,58 @@ double CostMap::get_cell_cost(point p) {
     return cell_costs[p.x][p.y];
 }
 
-// add n > 0 columns on the end of map or -n > 0 columns on the beginning of map
-void CostMap::add_columns(int n) {
+// add n > 0 or remove -n > 0 rows to/from the top side of the cost map
+void CostMap::reshape_top(int n) {
     updated_since_astar = true;
-    if (n > 0) {
-        cell_costs.insert(cell_costs.end(), n, deque<double>(height, min));
-        width += n;
-    }
-    else {
-        cell_costs.insert(cell_costs.begin(), -n, deque<double>(height, min));
-        width -= n;
-    }
-    astar_data.resize(width);
-}
-
-// delete n > 0 columns from the end of map or -n > 0 columns from the beginning of map
-void CostMap::del_columns(int n) {
-    updated_since_astar = true;
-    if (n > 0) {
-        cell_costs.erase(cell_costs.end() - n, cell_costs.end());
-        width -= n;
-    }
-    else {
-        cell_costs.erase(cell_costs.begin(), cell_costs.begin() - n);
-        width += n;
-    }
-    astar_data.resize(width);
-}
-
-// add n > 0 rows on the end of map or -n > 0 rows on the beginning of map
-void CostMap::add_rows(int n) {
-    updated_since_astar = true;
-    if (n > 0) {
-        for (int i = 0; i < width; i++) {
-            cell_costs[i].insert(cell_costs[i].end(), n, min);
-        }
-        height += n;
-    }
-    else {
-        for (int i = 0; i < width; i++) {
-            cell_costs[i].insert(cell_costs[i].begin(), -n, min);
-        }
-        height -= n;
-    }
-    for (int i = 0; i < width; i++) {
-        astar_data[i].resize(height);
-    }
-}
-
-// delete n > 0 rows from the end of map or -n > 0 rows from the beginning of map
-void CostMap::del_rows(int n) {
-    updated_since_astar = true;
-    if (n > 0) {
-        for (int i = 0; i < width; i++) {
-            cell_costs[i].erase(cell_costs[i].end() - n, cell_costs[i].end());
-        }
-        height -= n;
-    }
-    else {
-        for (int i = 0; i < width; i++) {
+    if (n > 0)
+        for (int i = 0; i < width; i++)
+            cell_costs[i].insert(cell_costs[i].begin(), n, min);
+    else if (n < 0)
+        for (int i = 0; i < width; i++)
             cell_costs[i].erase(cell_costs[i].begin(), cell_costs[i].begin() - n);
-        }
-        height += n;
-    }
-    for (int i = 0; i < width; i++) {
+    else return;
+    height += n;
+    for (int i = 0; i < width; i++)
         astar_data[i].resize(height);
-    }
+}
+
+// add n > 0 or remove -n > 0 rows to/from the bottom side of the cost map
+void CostMap::reshape_bottom(int n) {
+    updated_since_astar = true;
+    if (n > 0)
+        for (int i = 0; i < width; i++)
+            cell_costs[i].insert(cell_costs[i].end(), n, min);
+    else if (n < 0)
+        for (int i = 0; i < width; i++)
+            cell_costs[i].erase(cell_costs[i].end() + n, cell_costs[i].end());
+    else return;
+    height += n;
+    for (int i = 0; i < width; i++)
+        astar_data[i].resize(height);
+}
+
+// add n > 0 or remove -n > 0 columns to/from the left side of the cost map
+void CostMap::reshape_left(int n) {
+    updated_since_astar = true;
+    if (n > 0)
+        cell_costs.insert(cell_costs.begin(), n, deque<double>(height, min));
+    else if (n < 0)
+        cell_costs.erase(cell_costs.begin(), cell_costs.begin() - n);
+    else return;
+    width += n;
+    astar_data.resize(width);
+}
+
+// add n > 0 or remove -n > 0 columns to/from the right side of the cost map
+void CostMap::reshape_right(int n) {
+    updated_since_astar = true;
+    if (n > 0)
+        cell_costs.insert(cell_costs.end(), n, deque<double>(height, min));
+    else if (n < 0)
+        cell_costs.erase(cell_costs.end() + n, cell_costs.end());
+    else return;
+    width += n;
+    astar_data.resize(width);
 }
 
 // ----- A* -----

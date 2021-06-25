@@ -19,15 +19,15 @@ int import_and_run(string filename) {
         }
     }
     A.find_path(goal);
-    A.add_rows(-2);
-    A.add_columns(-2);
-    A.del_rows(2);
-    A.del_columns(2);
+    A.reshape_top(2);
+    A.reshape_left(2);
+    A.reshape_right(-2);
+    A.reshape_bottom(-2);
     A.find_path(goal);
-    A.add_rows(2);
-    A.add_columns(2);
-    A.del_rows(-2);
-    A.del_columns(-2);
+    A.reshape_bottom(2);
+    A.reshape_right(2);
+    A.reshape_top(-2);
+    A.reshape_left(-2);
     A.find_path(goal);
     return 0;
 }
