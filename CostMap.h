@@ -17,7 +17,6 @@ struct point { // or cell or coords
 };
 
 // Maybe TODO: change combine column/row editing functions to be more intuitive/efficient
-// TODO: test multiple runs with changes in the map
 // TODO: look at MAAV repos, figure out integration
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
@@ -56,7 +55,8 @@ public:
     double get_path_cost(point p); // cumulative cost of the minimum path to point p
     int heuristic(point p1, point p2); // heuristic cost of travel between two points (Manhattan distance)
     deque<point> find_path(point g); // find the optimal path to a goal g using the A* algorithm
-    void print_cost_map(); // print the cumulative cost of the minimum path to each cell evaluated so far
+    void print_cell_cost_map(); // print the movement cost of each cell
+    void print_path_cost_map(); // print the cumulative cost of the minimum path to each cell evaluated so far
     void print_search_map(); // print evaluation status of each cell
     void print_path(); // print the coordinates of the cells the path runs through
     // Variables
@@ -131,11 +131,11 @@ double CostMap::get_cell_cost(point p) {
 void CostMap::add_columns(int n) {
     updated_since_astar = true;
     if (n > 0) {
-        cell_costs.insert(cell_costs.end(), n, {});
+        cell_costs.insert(cell_costs.end(), n, deque<double>(height, min));
         width += n;
     }
     else {
-        cell_costs.insert(cell_costs.begin(), -n, {});
+        cell_costs.insert(cell_costs.begin(), -n, deque<double>(height, min));
         width -= n;
     }
     astar_data.resize(width);
@@ -149,7 +149,7 @@ void CostMap::del_columns(int n) {
         width -= n;
     }
     else {
-        cell_costs.erase(cell_costs.begin(), cell_costs.begin() + n);
+        cell_costs.erase(cell_costs.begin(), cell_costs.begin() - n);
         width += n;
     }
     astar_data.resize(width);
@@ -186,7 +186,7 @@ void CostMap::del_rows(int n) {
     }
     else {
         for (int i = 0; i < width; i++) {
-            cell_costs[i].erase(cell_costs[i].begin(), cell_costs[i].begin() + n);
+            cell_costs[i].erase(cell_costs[i].begin(), cell_costs[i].begin() - n);
         }
         height += n;
     }
@@ -215,6 +215,7 @@ void CostMap::reset_astar() {
 	    }
     }
     border.clear();
+    path.clear();
 }
 
 // update attributes of neighboring cells (based on current cell attributes)
@@ -265,7 +266,7 @@ deque<point> CostMap::find_path(point g) {
         update_neighbors(); // update costs and add to border as needed
         std::make_heap(border.begin(), border.end(), cheaper()); // update border in case element costs updated
         print_search_map();
-        print_cost_map();
+        print_path_cost_map();
     }
     // reconstruct path from end to beginning
     cur_pt = goal;
@@ -291,9 +292,19 @@ int CostMap::output_path_cost(point p) {
     return astar_data[p.x][p.y].path_cost == std::numeric_limits<double>::max() ? 0 : astar_data[p.x][p.y].path_cost;
 }
 
+// print the movement cost of each cell
+void CostMap::print_cell_cost_map() {
+    cout << "\ncell cost map:\n";
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++)
+            cout << cell_costs[j][i] << '\t';
+        cout << '\n';
+    }
+}
+
 // print the cumulative cost of the minimum path to each cell evaluated so far
-void CostMap::print_cost_map() {
-    cout << "\ncost map:\n";
+void CostMap::print_path_cost_map() {
+    cout << "\npath cost map:\n";
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++)
             cout << output_path_cost({ this, j, i }) << '\t';
