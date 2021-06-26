@@ -1,2 +1,2 @@
-update the heuristic to something more applicable to the real world (esp. diagonal movement)
-figure out how to get smooth paths without zigzagging (see diagonal above and 467 solution, might need entirely new implementation for this)
+maybe: update the heuristic to something more applicable to the real world (esp. diagonal movement)
+figure out how to use waypoints instead of zigzagging through cells (see diagonal above and 467 solution, might need entirely new implementation for this)

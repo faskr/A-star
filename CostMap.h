@@ -16,8 +16,6 @@ struct point { // or cell or coords
     int y;
 };
 
-// TODO: look at MAAV repos, figure out integration
-
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
 public:
