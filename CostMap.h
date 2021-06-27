@@ -16,6 +16,9 @@ struct point { // or cell or coords
     int y;
 };
 
+// TODO: write function that takes in a path of cells and outputs a smoother path of waypoints
+//	idea: put segment endpoints where direction changes and continues for more than one cell
+
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
 public:
