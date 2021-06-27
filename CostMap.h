@@ -19,7 +19,7 @@ struct point { // or cell or coords
 // TODO: write function that takes in a path of cells and outputs a smoother path of waypoints
 //	idea: put segment endpoints where direction changes and continues for more than one cell
 // TODO: consider using Euclidean distance heuristic to solve the problem of L-shaped paths
-// Maybe TODO: consider including diagonal neighbors (requires something other than Manhattan heuristic)
+// Maybe TODO: consider including diagonal neighbors (requires doubling cost on diagonals or using heuristic besides Manhattan)
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
