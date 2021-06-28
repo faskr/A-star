@@ -2,6 +2,7 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <cmath>
 
 using std::cout;
 using std::deque;
@@ -55,7 +56,7 @@ public:
     // ----- A* -----
     // Functions
     double get_path_cost(point p); // cumulative cost of the minimum path to point p
-    int heuristic(point p1, point p2); // heuristic cost of travel between two points (Manhattan distance)
+    double heuristic(point p1, point p2); // heuristic cost of travel between two points (Euclidean distance)
     deque<point> find_path(point g); // find the optimal path to a goal g using the A* algorithm
     void print_cell_cost_map(); // print the movement cost of each cell
     void print_path_cost_map(); // print the cumulative cost of the minimum path to each cell evaluated so far
@@ -63,6 +64,7 @@ public:
     void print_path(); // print the coordinates of the cells the path runs through
     // Variables
     deque<point> path;
+    deque<point> waypoints;
     point goal;
 
 private:
@@ -75,7 +77,7 @@ private:
     struct CellAstarData { // or [Cell]AstarInfo or CellPath[Data/Info]
         point prev = {0, 0, 0};
         double path_cost = std::numeric_limits<double>::max();
-        bool added = 0;
+        int added = 0;
         int visited = 0; // only for record keeping
     };
     // Variables
@@ -86,6 +88,7 @@ private:
     // Functions
     void reset_astar(); // prepare for next astar path search
     void update_neighbors(); // update attributes of neighboring cells (based on current cell attributes)
+    void smooth_path();
     int output_search(point p); // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
     int output_path_cost(point p); // cumulative cost of the minimum path to point p, but replace max double values with 0
 };
@@ -190,9 +193,12 @@ double CostMap::get_path_cost(point p) {
     return astar_data[p.x][p.y].path_cost;
 }
 
-// heuristic cost of travel between two points (Manhattan distance)
-int CostMap::heuristic(point p1, point p2) {
-    return abs(p1.x - p2.x) + abs(p1.y - p2.y); // Manhattan distance
+// heuristic cost of travel between two points (Euclidean distance)
+double CostMap::heuristic(point p1, point p2) {
+    //return abs(p1.x - p2.x) + abs(p1.y - p2.y); // Manhattan distance
+    double dx = p1.x - p2.x;
+    double dy = p1.y - p2.y;
+    return sqrt(dx*dx + dy*dy); // Euclidean distance
 }
 
 // prepare for next astar path search
@@ -204,6 +210,7 @@ void CostMap::reset_astar() {
     }
     border.clear();
     path.clear();
+    waypoints.clear();
 }
 
 // update attributes of neighboring cells (based on current cell attributes)
@@ -227,6 +234,29 @@ void CostMap::update_neighbors() {
                 std::push_heap(border.begin(), border.end(), cheaper());
                 astar_data[side.x][side.y].added = true;
             }
+        }
+    }
+}
+
+void CostMap::smooth_path() {
+    /*
+    objective: maximize the length of each segment while preventing it from representing a curved section of the path
+    1 waypoint when:
+    direction changes 
+    */
+    if (path.empty()) return;
+    waypoints.push_back(path[0]);
+    if (path.size() == 1) return;
+    int dx = path[1].x - path[0].x;
+    int dy = path[1].y - path[0].y;
+    point direction = { this, dx, dy };
+    for (int i = 1; i < path.size(); i++) {
+        dx = path[i].x - path[i-1].x;
+        dy = path[i].y - path[i-1].y;
+        if (direction.x != dx || direction.y != dy || i == path.size() - 1) {
+            direction.x = dx;
+            direction.y = dy;
+            waypoints.push_back(path[i]);
         }
     }
 }
@@ -264,14 +294,15 @@ deque<point> CostMap::find_path(point g) {
         cur_pt = astar_data[cur_pt.x][cur_pt.y].prev;
     }
     path.push_front(cur_pt);
+    smooth_path();
     print_path();
     print_search_map();
-    return path;
+    return waypoints;
 }
 
 // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
 int CostMap::output_search(point p) {
-    if (astar_data[p.x][p.y].visited == 2) return 3;
+    //if (astar_data[p.x][p.y].visited == 2) return 3;
     return astar_data[p.x][p.y].added ? astar_data[p.x][p.y].added : astar_data[p.x][p.y].visited * 2;
 }
 
@@ -314,7 +345,11 @@ void CostMap::print_search_map() {
 void CostMap::print_path() {
     cout << "\npath coordinates:\n";
     for (point pt : path) {
-        astar_data[pt.x][pt.y].visited = 2;
+        astar_data[pt.x][pt.y].added = 3;
+        //cout << pt.x << ',' << pt.y << " (cost = " << astar_data[pt.x][pt.y].path_cost << ")\n";
+    }
+    for (point pt : waypoints) {
+        astar_data[pt.x][pt.y].added = 4;
         cout << pt.x << ',' << pt.y << " (cost = " << astar_data[pt.x][pt.y].path_cost << ")\n";
     }
 }

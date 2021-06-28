@@ -19,6 +19,7 @@ int import_and_run(string filename) {
         }
     }
     A.find_path(goal);
+    exit(0);
     A.reshape_top(2);
     A.reshape_left(2);
     A.reshape_right(-2);
