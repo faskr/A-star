@@ -241,7 +241,8 @@ void CostMap::update_neighbors() {
 
 /*
 Path segment: a line segment that has endpoints on the path defined by the smoothing algorithm
-Rule: All path segments must either have at least one component in [-1, 1] or be made up of path segments which all have at least one component in [-1, 1]
+Rule: All path segments must either have at least one component with length 1 or be made up of path segments which all have at least one component with length 1
+Alt Rule: All path segments must either have at least one component in [-1, 1] or be made up of path segments which all have at least one component in [-1, 1]
 Rule: Sequential path segments with the same slope must be combined into one path segment
 Potential Rule: A path segment p must have at least one component = 0 if and only if the following hold:
     1. p already has at least one component = 0 when the path modifies its course in a new direction for > 1 cell
@@ -249,54 +250,35 @@ Potential Rule: A path segment p must have at least one component = 0 if and onl
 */
 void CostMap::smooth_path() {
     if (path.empty()) return;
-    waypoints.push_back(path[0]);
-    if (path.size() == 1) return;
+    if (path.size() == 1) {
+        waypoints.push_back(path[0]);
+        return;
+    }
     point prev_dir = {this, path[1].x - path[0].x, path[1].y - path[0].y};
     point cur_dir;
     point prev_slope = {this, 0, 0};
     point cur_slope = prev_dir;
-    int wp_candidate;
+    int wp_candidate = 0;
     for (int i = 2; i < path.size(); i++) {
         cur_dir.x = path[i].x - path[i-1].x;
         cur_dir.y = path[i].y - path[i-1].y;
-        if (prev_dir.x == cur_dir.x && prev_dir.y == cur_dir.y) {
-            if (cur_slope.x > 0 && cur_slope.y > 0) {
-                //waypoints.push_back(path[wp_candidate]);
-                if (prev_slope.x*cur_slope.x > 0 && prev_slope.y*cur_slope.y > 0) {
-                    //wp_candidate = i - 1;
-                    waypoints.push_back(path[i-1]);
-                    prev_slope = cur_slope;
-                    cur_slope = cur_dir;
-                }
-                else {
-                    waypoints.push_back(path[i-2]);
-                    prev_slope = cur_slope;
-                    cur_slope.x = prev_dir.x + cur_dir.x;
-                    cur_slope.y = prev_dir.y + cur_dir.y;
-                }
+        cur_slope.x += cur_dir.x;
+        cur_slope.y += cur_dir.y;
+        if ((prev_dir.x != cur_dir.x || prev_dir.y != cur_dir.y) && (cur_slope.x > 1 || cur_slope.y > 1)) { // Problem: some slopes will have both components > 1
+            if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
+                waypoints.push_back(path[wp_candidate]);
             }
-            else {
-                cur_slope.x += cur_dir.x;
-                cur_slope.y += cur_dir.y;
-            }
+            wp_candidate = i;
+            prev_slope = cur_slope;
+            cur_slope.x = 0;
+            cur_slope.y = 0;
         }
-        else {
-            if (cur_slope.x == 0 || cur_slope.y == 0) {
-                cur_slope.x += cur_dir.x;
-                cur_slope.y += cur_dir.y;
-                if (prev_slope.x == cur_slope.x && prev_slope.y == cur_slope.y) {
-                    wp_candidate = i;
-                }
-                else {
-                    waypoints.push_back(path[wp_candidate]);
-                    wp_candidate = i;
-                }
-            }
-            else {
-
-            }
-        }
+        prev_dir = cur_dir;
     }
+    if (wp_candidate != path.size() - 1) {
+        waypoints.push_back(path[wp_candidate]);
+    }
+    waypoints.push_back(path.back());
 }
 
 void CostMap::smooth_path_v1() {
