@@ -89,6 +89,7 @@ private:
     void reset_astar(); // prepare for next astar path search
     void update_neighbors(); // update attributes of neighboring cells (based on current cell attributes)
     void smooth_path();
+    void smooth_path_v1();
     int output_search(point p); // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
     int output_path_cost(point p); // cumulative cost of the minimum path to point p, but replace max double values with 0
 };
@@ -238,11 +239,70 @@ void CostMap::update_neighbors() {
     }
 }
 
+/*
+Path segment: a line segment that has endpoints on the path defined by the smoothing algorithm
+Rule: All path segments must either have at least one component in [-1, 1] or be made up of path segments which all have at least one component in [-1, 1]
+Rule: Sequential path segments with the same slope must be combined into one path segment
+Potential Rule: A path segment p must have at least one component = 0 if and only if the following hold:
+    1. p already has at least one component = 0 when the path modifies its course in a new direction for > 1 cell
+    2. The new direction of the path must have at least one component whose sign is opposite to the sign of the same component in the path segment before p
+*/
 void CostMap::smooth_path() {
+    if (path.empty()) return;
+    waypoints.push_back(path[0]);
+    if (path.size() == 1) return;
+    point prev_dir = {this, path[1].x - path[0].x, path[1].y - path[0].y};
+    point cur_dir;
+    point prev_slope = {this, 0, 0};
+    point cur_slope = prev_dir;
+    int wp_candidate;
+    for (int i = 2; i < path.size(); i++) {
+        cur_dir.x = path[i].x - path[i-1].x;
+        cur_dir.y = path[i].y - path[i-1].y;
+        if (prev_dir.x == cur_dir.x && prev_dir.y == cur_dir.y) {
+            if (cur_slope.x > 0 && cur_slope.y > 0) {
+                //waypoints.push_back(path[wp_candidate]);
+                if (prev_slope.x*cur_slope.x > 0 && prev_slope.y*cur_slope.y > 0) {
+                    //wp_candidate = i - 1;
+                    waypoints.push_back(path[i-1]);
+                    prev_slope = cur_slope;
+                    cur_slope = cur_dir;
+                }
+                else {
+                    waypoints.push_back(path[i-2]);
+                    prev_slope = cur_slope;
+                    cur_slope.x = prev_dir.x + cur_dir.x;
+                    cur_slope.y = prev_dir.y + cur_dir.y;
+                }
+            }
+            else {
+                cur_slope.x += cur_dir.x;
+                cur_slope.y += cur_dir.y;
+            }
+        }
+        else {
+            if (cur_slope.x == 0 || cur_slope.y == 0) {
+                cur_slope.x += cur_dir.x;
+                cur_slope.y += cur_dir.y;
+                if (prev_slope.x == cur_slope.x && prev_slope.y == cur_slope.y) {
+                    wp_candidate = i;
+                }
+                else {
+                    waypoints.push_back(path[wp_candidate]);
+                    wp_candidate = i;
+                }
+            }
+            else {
+
+            }
+        }
+    }
+}
+
+void CostMap::smooth_path_v1() {
     /*
     objective: maximize the length of each segment while preventing it from representing a curved section of the path
-    1 waypoint when:
-    direction changes 
+    1 waypoint when: direction changes
     */
     if (path.empty()) return;
     waypoints.push_back(path[0]);
