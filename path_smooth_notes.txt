@@ -1,0 +1,14 @@
+axes: 1st, 2nd, 2nd last, last
+length: 1, 2+
+angle: acute, right, obtuse
+
+transition = -1
+		2nd last = -1	2nd last = 0	2nd last = 1
+last = -1	wp = 2nd last	
+last = 0
+last = 1
+
+transition = 0
+
+
+transition = 1
