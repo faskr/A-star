@@ -17,16 +17,14 @@ struct point { // or cell or coords
     int y;
 };
 
-// TODO: test find_waypoints using CostMap_test1.cpp
 // TODO: reduce redundant code in find_waypoints
-// Maybe TODO: use Chebyshev heuristic
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
 public:
     // ----- MAP -----
     // Constructor
-    CostMap(int h, int w, point p, double m = 1) : height(h), width(w), pos(p), min(m) {
+    CostMap(int h, int w, point p, double m = 1, char t = 'e') : height(h), width(w), pos(p), min(m), heuristic_type(t) {
         if (min <= 0) {
             cout << "error: min cost value must be positive\n";
             exit(1);
@@ -60,7 +58,7 @@ public:
     // Functions
     point get_goal(); // destination of travel
     double get_path_cost(point p); // cumulative cost of the minimum path to point p
-    double heuristic(point p1, point p2); // heuristic cost of travel between two points (Euclidean distance)
+    double heuristic(point p1, point p2); // minimum cost of path between two points
     deque<point> find_path(point g); // find the optimal path to a goal g using the A* algorithm
     void print_cell_cost_map(); // print the movement cost of each cell
     void print_path_cost_map(); // print the cumulative cost of the minimum path to each cell evaluated so far
@@ -69,6 +67,7 @@ public:
     // Variables
     deque<point> path;
     deque<point> waypoints;
+    char heuristic_type;
 
 private:
     // ----- MAP -----
@@ -202,12 +201,23 @@ double CostMap::get_path_cost(point p) {
     return astar_data[p.x][p.y].path_cost;
 }
 
-// heuristic cost of travel between two points (Euclidean distance)
+// minimum cost of path between two points
 double CostMap::heuristic(point p1, point p2) {
-    //return abs(p1.x - p2.x) + abs(p1.y - p2.y); // Manhattan distance
-    double dx = p1.x - p2.x;
-    double dy = p1.y - p2.y;
-    return sqrt(dx*dx + dy*dy); // Euclidean distance
+    double h;
+    switch (heuristic_type) {
+        case 'm':
+            h = abs(p1.x - p2.x) + abs(p1.y - p2.y); // Manhattan distance, tends to overestimate true minimum: _|
+            break;
+        case 'c':
+            h = std::max(abs(p1.x - p2.x), abs(p1.y - p2.y)); // Chebychev distance, tends to underestimate true minimum: |
+            break;
+        case 'e':
+            h = sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2)); // Euclidean distance, true minimum: /
+            break;
+        default:
+            h = sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2)); // Euclidean distance
+    }
+    return h;
 }
 
 // prepare for next astar path search
@@ -271,30 +281,24 @@ void CostMap::find_waypoints() {
                 prev_slope = cur_slope;
                 cur_slope.x = 0;
                 cur_slope.y = 0;
-                cur_slope.x += cur_dir.x;
-                cur_slope.y += cur_dir.y;
             }
-            else {
+            else if (abs(cur_slope.x) > 1 || abs(cur_slope.y) > 1) {
                 cur_slope.x += cur_dir.x;
                 cur_slope.y += cur_dir.y;
-                if (abs(cur_slope.x) > 1 || abs(cur_slope.y) > 1) {
-                    if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
-                        waypoints.push_back(path[wp_candidate]);
-                    }
-                    wp_candidate = i;
-                    prev_slope = cur_slope;
-                    cur_slope.x = 0;
-                    cur_slope.y = 0;
+                if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
+                    waypoints.push_back(path[wp_candidate]);
                 }
+                wp_candidate = i;
+                prev_slope = cur_slope;
+                cur_slope.x = -cur_dir.x;
+                cur_slope.y = -cur_dir.y;
             }
         }
-        else {
-            cur_slope.x += cur_dir.x;
-            cur_slope.y += cur_dir.y;
-        }
+        cur_slope.x += cur_dir.x;
+        cur_slope.y += cur_dir.y;
         prev_dir = cur_dir;
         // debug
-        cout << "i = " << i << "; prev_slope = " << prev_slope.x << ", " << prev_slope.y << "; cur_slope = " << cur_slope.x << ", " << cur_slope.y << '\n';
+        //cout << "i = " << i << "; prev_slope = " << prev_slope.x << ", " << prev_slope.y << "; cur_slope = " << cur_slope.x << ", " << cur_slope.y << '\n';
     }
     if (wp_candidate != path.size() - 1 && (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y)) {
         waypoints.push_back(path[wp_candidate]);
