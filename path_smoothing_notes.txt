@@ -1,0 +1,11 @@
+Definition: A path segment is a line segment that has endpoints on the path defined by the smoothing algorithm
+
+Objective: Maximize the length of each path segment while preventing it from representing a curved section of the path
+
+Rule: All path segments must either have at least one component with length 1 or be made up of path segments which all have at least one component with length 1
+Rule: Sequential path segments with the same slope must be combined into one path segment
+
+Alt Rule: All path segments must either have at least one component in [-1, 1] or be made up of path segments which all have at least one component in [-1, 1]
+Alt Rule: A path segment p must have at least one component = 0 if and only if the following hold:
+    1. p already has at least one component = 0 when the path modifies its course in a new direction for > 1 cell
+    2. The new direction of the path must have at least one component whose sign is opposite to the sign of the same component in the path segment before p

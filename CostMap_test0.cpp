@@ -9,8 +9,6 @@ int import_and_run(string filename) {
     point pos, goal;
     ifs >> height >> width >> pos.x >> pos.y >> goal.x >> goal.y;
     CostMap A(height, width, pos);
-    if (!A.in_bounds(pos)) return 1;
-    if (!A.in_bounds(goal)) return 1;
     double cost;
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
@@ -19,7 +17,8 @@ int import_and_run(string filename) {
         }
     }
     A.find_path(goal);
-    exit(0);
+    return 0;
+    // test reshape functions
     A.reshape_top(2);
     A.reshape_left(2);
     A.reshape_right(-2);

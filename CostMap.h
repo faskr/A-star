@@ -17,10 +17,9 @@ struct point { // or cell or coords
     int y;
 };
 
-// TODO: write function that takes in a path of cells and outputs a smoother path of waypoints
-//	idea: put segment endpoints where direction changes and continues for more than one cell
-// TODO: consider using Euclidean distance heuristic to solve the problem of L-shaped paths
-// Maybe TODO: consider including diagonal neighbors (requires doubling cost on diagonals or using heuristic besides Manhattan)
+// TODO: test find_waypoints using CostMap_test1.cpp
+// TODO: reduce redundant code in find_waypoints
+// Maybe TODO: use Chebyshev heuristic
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
@@ -31,6 +30,10 @@ public:
         if (min <= 0) {
             cout << "error: min cost value must be positive\n";
             exit(1);
+        }
+        if (!in_bounds(pos)) {
+            cout << "error: pos out of bounds\n";
+            exit(2);
         }
         cell_costs.resize(width);
         astar_data.resize(width);
@@ -55,6 +58,7 @@ public:
 
     // ----- A* -----
     // Functions
+    point get_goal(); // destination of travel
     double get_path_cost(point p); // cumulative cost of the minimum path to point p
     double heuristic(point p1, point p2); // heuristic cost of travel between two points (Euclidean distance)
     deque<point> find_path(point g); // find the optimal path to a goal g using the A* algorithm
@@ -65,12 +69,12 @@ public:
     // Variables
     deque<point> path;
     deque<point> waypoints;
-    point goal;
 
 private:
     // ----- MAP -----
     // Variables
     deque<deque<double>> cell_costs;
+    point goal;
 
     // ----- A* -----
     // Structs
@@ -88,8 +92,7 @@ private:
     // Functions
     void reset_astar(); // prepare for next astar path search
     void update_neighbors(); // update attributes of neighboring cells (based on current cell attributes)
-    void smooth_path();
-    void smooth_path_v1();
+    void find_waypoints(); // find waypoints in the path, for smooth movement
     int output_search(point p); // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
     int output_path_cost(point p); // cumulative cost of the minimum path to point p, but replace max double values with 0
 };
@@ -102,8 +105,8 @@ public:
             cout << "error: two points from different path searches compared\n";
             exit(1);
         }
-        double p1_total = p1.map->get_path_cost(p1) + p1.map->heuristic(p1, p1.map->goal);
-        double p2_total = p2.map->get_path_cost(p2) + p2.map->heuristic(p2, p2.map->goal);
+        double p1_total = p1.map->get_path_cost(p1) + p1.map->heuristic(p1, p1.map->get_goal());
+        double p2_total = p2.map->get_path_cost(p2) + p2.map->heuristic(p2, p2.map->get_goal());
         return p1_total > p2_total;
     }
 };
@@ -189,6 +192,11 @@ void CostMap::reshape_right(int n) {
 
 // ----- A* -----
 
+// destination of travel
+point CostMap::get_goal() {
+    return goal;
+}
+
 // cumulative cost of the minimum path to point p
 double CostMap::get_path_cost(point p) {
     return astar_data[p.x][p.y].path_cost;
@@ -239,16 +247,8 @@ void CostMap::update_neighbors() {
     }
 }
 
-/*
-Path segment: a line segment that has endpoints on the path defined by the smoothing algorithm
-Rule: All path segments must either have at least one component with length 1 or be made up of path segments which all have at least one component with length 1
-Alt Rule: All path segments must either have at least one component in [-1, 1] or be made up of path segments which all have at least one component in [-1, 1]
-Rule: Sequential path segments with the same slope must be combined into one path segment
-Potential Rule: A path segment p must have at least one component = 0 if and only if the following hold:
-    1. p already has at least one component = 0 when the path modifies its course in a new direction for > 1 cell
-    2. The new direction of the path must have at least one component whose sign is opposite to the sign of the same component in the path segment before p
-*/
-void CostMap::smooth_path() {
+// find waypoints in the path, for smooth movement
+void CostMap::find_waypoints() {
     if (path.empty()) return;
     if (path.size() == 1) {
         waypoints.push_back(path[0]);
@@ -262,53 +262,54 @@ void CostMap::smooth_path() {
     for (int i = 2; i < path.size(); i++) {
         cur_dir.x = path[i].x - path[i-1].x;
         cur_dir.y = path[i].y - path[i-1].y;
-        cur_slope.x += cur_dir.x;
-        cur_slope.y += cur_dir.y;
-        if ((prev_dir.x != cur_dir.x || prev_dir.y != cur_dir.y) && (cur_slope.x > 1 || cur_slope.y > 1)) { // Problem: some slopes will have both components > 1
-            if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
-                waypoints.push_back(path[wp_candidate]);
+        if (prev_dir.x != cur_dir.x || prev_dir.y != cur_dir.y) {
+            if (cur_slope.x != 0 && cur_slope.y != 0) {
+                if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
+                    waypoints.push_back(path[wp_candidate]);
+                }
+                wp_candidate = i - 1;
+                prev_slope = cur_slope;
+                cur_slope.x = 0;
+                cur_slope.y = 0;
+                cur_slope.x += cur_dir.x;
+                cur_slope.y += cur_dir.y;
             }
-            wp_candidate = i;
-            prev_slope = cur_slope;
-            cur_slope.x = 0;
-            cur_slope.y = 0;
+            else {
+                cur_slope.x += cur_dir.x;
+                cur_slope.y += cur_dir.y;
+                if (abs(cur_slope.x) > 1 || abs(cur_slope.y) > 1) {
+                    if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
+                        waypoints.push_back(path[wp_candidate]);
+                    }
+                    wp_candidate = i;
+                    prev_slope = cur_slope;
+                    cur_slope.x = 0;
+                    cur_slope.y = 0;
+                }
+            }
+        }
+        else {
+            cur_slope.x += cur_dir.x;
+            cur_slope.y += cur_dir.y;
         }
         prev_dir = cur_dir;
+        // debug
+        cout << "i = " << i << "; prev_slope = " << prev_slope.x << ", " << prev_slope.y << "; cur_slope = " << cur_slope.x << ", " << cur_slope.y << '\n';
     }
-    if (wp_candidate != path.size() - 1) {
+    if (wp_candidate != path.size() - 1 && (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y)) {
         waypoints.push_back(path[wp_candidate]);
     }
     waypoints.push_back(path.back());
 }
 
-void CostMap::smooth_path_v1() {
-    /*
-    objective: maximize the length of each segment while preventing it from representing a curved section of the path
-    1 waypoint when: direction changes
-    */
-    if (path.empty()) return;
-    waypoints.push_back(path[0]);
-    if (path.size() == 1) return;
-    int dx = path[1].x - path[0].x;
-    int dy = path[1].y - path[0].y;
-    point direction = { this, dx, dy };
-    for (int i = 1; i < path.size(); i++) {
-        dx = path[i].x - path[i-1].x;
-        dy = path[i].y - path[i-1].y;
-        if (direction.x != dx || direction.y != dy || i == path.size() - 1) {
-            direction.x = dx;
-            direction.y = dy;
-            waypoints.push_back(path[i]);
-        }
-    }
-}
-
 // find the optimal path to a goal g using the A* algorithm
 deque<point> CostMap::find_path(point g) {
+    // check that g is in bounds and set the goal
+    if (!in_bounds(g)) return path;
     goal = g;
     // if map hasn't changed since last run, results will be the same; otherwise, reset and start over
     if (!updated_since_astar) return path;
-    else reset_astar();
+    reset_astar();
     // set first border cell to starting point
     astar_data[pos.x][pos.y].path_cost = 0;
     astar_data[pos.x][pos.y].visited = true;
@@ -336,7 +337,8 @@ deque<point> CostMap::find_path(point g) {
         cur_pt = astar_data[cur_pt.x][cur_pt.y].prev;
     }
     path.push_front(cur_pt);
-    smooth_path();
+    find_waypoints();
+    print_cell_cost_map();
     print_path();
     print_search_map();
     return waypoints;
