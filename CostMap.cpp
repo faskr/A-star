@@ -17,9 +17,6 @@ struct point { // or cell or coords
     int y;
 };
 
-// TODO: comment in find_waypoints
-// TODO: code style consistency
-
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
 public:
@@ -32,12 +29,12 @@ public:
         }
         if (!in_bounds(pos)) {
             cout << "error: pos out of bounds\n";
-            exit(2);
+            exit(1);
         }
         cell_costs.resize(width);
         astar_data.resize(width);
         for (int i = 0; i < width; i++) {
-	    cell_costs[i].resize(height, min);
+	        cell_costs[i].resize(height, min);
             astar_data[i].resize(height);
         }
     }
@@ -124,9 +121,8 @@ void CostMap::set_cell_cost(point p, double cost) {
         cout << "error: cost must be positive\n";
         exit(1);
     }
-    else if (cost < min) {
+    else if (cost < min)
         cout << "warning: cost less than heuristic minimum; solution not guaranteed to be optimal\n";
-    }
     updated_since_astar = true;
     cell_costs[p.x][p.y] = cost;
 }
@@ -223,11 +219,9 @@ double CostMap::heuristic(point p1, point p2) {
 
 // prepare for next astar path search
 void CostMap::reset_astar() {
-    for (int i = 0; i < width; i++) {
-	    for (int j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++)
+	    for (int j = 0; j < height; j++)
 	        astar_data[i][j] = CellAstarData();
-	    }
-    }
     border.clear();
     path.clear();
     waypoints.clear();
@@ -261,28 +255,36 @@ void CostMap::update_neighbors() {
 // find waypoints in the path, for smooth movement
 void CostMap::find_waypoints() {
     if (path.empty()) return;
-    point prev_dir = {this, 0, 0};
-    point cur_dir = {this, 0, 0};
-    point prev_slope = {this, 0, 0};
-    point cur_slope = {this, 0, 0};
-    int wp_candidate = 0;
+    point prev_dir = {this, 0, 0}; // direction of the previous path segment
+    point cur_dir = {this, 0, 0}; // direction of the current path segment
+    point prev_slope = {this, 0, 0}; // slope of the previous group of path segments
+    point cur_slope = {this, 0, 0}; // slope of the current group of path segments
+    int wp_candidate = 0; // potential waypoint
     for (int i = 1; i < path.size(); i++) {
+        // update current direction and slope
         cur_dir.x = path[i].x - path[i-1].x;
         cur_dir.y = path[i].y - path[i-1].y;
         cur_slope.x += cur_dir.x;
         cur_slope.y += cur_dir.y;
+        // if direction has changed
         if ((prev_dir.x != cur_dir.x || prev_dir.y != cur_dir.y)) {
+            // if the current slope now has 2 pieces in the current direction, group of segments is already complete, so start a new group
             if (cur_slope.x - cur_dir.x != 0 && cur_slope.y - cur_dir.y != 0) {
+                // if the slope has changed, push back a waypoint
                 if (prev_slope.x != cur_slope.x - cur_dir.x || prev_slope.y != cur_slope.y - cur_dir.y)
                     waypoints.push_back(path[wp_candidate]);
+                // rewind to the previous point (where the slope had just 1 piece in the current direction), and reset and update segment group info
                 wp_candidate = i - 1;
                 prev_slope.x = cur_slope.x - cur_dir.x;
                 prev_slope.y = cur_slope.y - cur_dir.y;
-                cur_slope = cur_dir;
+                cur_slope = cur_dir; // current path segment is the start of a new segment group
             }
+            // if the component of the slope that was not just updated is longer than 1, group of segments is complete, so start a new group
             else if (abs(cur_slope.x) > 1 || abs(cur_slope.y) > 1) {
+                // if the slope has changed, push back a waypoint
                 if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y)
                     waypoints.push_back(path[wp_candidate]);
+                // reset and update segment group info
                 wp_candidate = i;
                 prev_slope = cur_slope;
                 cur_slope.x = 0;
@@ -291,10 +293,10 @@ void CostMap::find_waypoints() {
         }
         prev_dir = cur_dir;
     }
-    if (wp_candidate != path.size() - 1 && (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y)) {
+    // push back a waypoint if the candidate is not the end or in a group with the same slope as the end
+    if (wp_candidate != path.size() - 1 && (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y))
         waypoints.push_back(path[wp_candidate]);
-    }
-    waypoints.push_back(path.back());
+    waypoints.push_back(path.back()); // the end of the path is the last waypoint
 }
 
 // find the optimal path to a goal g using the A* algorithm
@@ -338,7 +340,7 @@ deque<point> CostMap::find_path(point g) {
     return waypoints;
 }
 
-// search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
+// search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost), 4 = waypoint
 int CostMap::output_search(point p) {
     return astar_data[p.x][p.y].added ? astar_data[p.x][p.y].added : astar_data[p.x][p.y].visited * 2;
 }

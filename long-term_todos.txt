@@ -1,5 +1,5 @@
 Possible alternatives to grid implementation:
-  visibility graph
-  voronoi planning
-  probabilistic roadmap
-  rapidly-exploring random tree
+  visibility graph (1st choice)
+  voronoi planning (3rd choice)
+  probabilistic roadmap (2nd choice)
+  rapidly-exploring random tree (not even A*)
