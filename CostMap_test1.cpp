@@ -12,7 +12,7 @@ int main() {
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             if (rand() % 8 == 0) {
-                A.set_cell_cost({ &A, j, i }, rand() % 10 + 1);
+                A.set_cell_cost({ &A, j, i }, rand() % 5 + 1);
             }
         }
     }

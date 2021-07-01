@@ -17,7 +17,8 @@ struct point { // or cell or coords
     int y;
 };
 
-// TODO: reduce redundant code in find_waypoints
+// TODO: comment in find_waypoints
+// TODO: code style consistency
 
 // class which stores a map of travel costs at each point and finds the optimal path between two points using the A* algorithm
 class CostMap {
@@ -260,45 +261,35 @@ void CostMap::update_neighbors() {
 // find waypoints in the path, for smooth movement
 void CostMap::find_waypoints() {
     if (path.empty()) return;
-    if (path.size() == 1) {
-        waypoints.push_back(path[0]);
-        return;
-    }
-    point prev_dir = {this, path[1].x - path[0].x, path[1].y - path[0].y};
-    point cur_dir;
+    point prev_dir = {this, 0, 0};
+    point cur_dir = {this, 0, 0};
     point prev_slope = {this, 0, 0};
-    point cur_slope = prev_dir;
+    point cur_slope = {this, 0, 0};
     int wp_candidate = 0;
-    for (int i = 2; i < path.size(); i++) {
+    for (int i = 1; i < path.size(); i++) {
         cur_dir.x = path[i].x - path[i-1].x;
         cur_dir.y = path[i].y - path[i-1].y;
-        if (prev_dir.x != cur_dir.x || prev_dir.y != cur_dir.y) {
-            if (cur_slope.x != 0 && cur_slope.y != 0) {
-                if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
+        cur_slope.x += cur_dir.x;
+        cur_slope.y += cur_dir.y;
+        if ((prev_dir.x != cur_dir.x || prev_dir.y != cur_dir.y)) {
+            if (cur_slope.x - cur_dir.x != 0 && cur_slope.y - cur_dir.y != 0) {
+                if (prev_slope.x != cur_slope.x - cur_dir.x || prev_slope.y != cur_slope.y - cur_dir.y)
                     waypoints.push_back(path[wp_candidate]);
-                }
                 wp_candidate = i - 1;
+                prev_slope.x = cur_slope.x - cur_dir.x;
+                prev_slope.y = cur_slope.y - cur_dir.y;
+                cur_slope = cur_dir;
+            }
+            else if (abs(cur_slope.x) > 1 || abs(cur_slope.y) > 1) {
+                if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y)
+                    waypoints.push_back(path[wp_candidate]);
+                wp_candidate = i;
                 prev_slope = cur_slope;
                 cur_slope.x = 0;
                 cur_slope.y = 0;
             }
-            else if (abs(cur_slope.x) > 1 || abs(cur_slope.y) > 1) {
-                cur_slope.x += cur_dir.x;
-                cur_slope.y += cur_dir.y;
-                if (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y) {
-                    waypoints.push_back(path[wp_candidate]);
-                }
-                wp_candidate = i;
-                prev_slope = cur_slope;
-                cur_slope.x = -cur_dir.x;
-                cur_slope.y = -cur_dir.y;
-            }
         }
-        cur_slope.x += cur_dir.x;
-        cur_slope.y += cur_dir.y;
         prev_dir = cur_dir;
-        // debug
-        //cout << "i = " << i << "; prev_slope = " << prev_slope.x << ", " << prev_slope.y << "; cur_slope = " << cur_slope.x << ", " << cur_slope.y << '\n';
     }
     if (wp_candidate != path.size() - 1 && (prev_slope.x != cur_slope.x || prev_slope.y != cur_slope.y)) {
         waypoints.push_back(path[wp_candidate]);
@@ -330,8 +321,6 @@ deque<point> CostMap::find_path(point g) {
         astar_data[cur_pt.x][cur_pt.y].added = false;
         update_neighbors(); // update costs and add to border as needed
         std::make_heap(border.begin(), border.end(), cheaper()); // update border in case element costs updated
-        print_search_map();
-        print_path_cost_map();
     }
     // reconstruct path from end to beginning
     cur_pt = goal;
@@ -343,14 +332,14 @@ deque<point> CostMap::find_path(point g) {
     path.push_front(cur_pt);
     find_waypoints();
     print_cell_cost_map();
-    print_path();
+    print_path_cost_map();
     print_search_map();
+    print_path();
     return waypoints;
 }
 
 // search results: 0 = untouched, 1 = added to border (evaluating cost), 2 = visited (cost evaluated), 3 = path (minimum cost)
 int CostMap::output_search(point p) {
-    //if (astar_data[p.x][p.y].visited == 2) return 3;
     return astar_data[p.x][p.y].added ? astar_data[p.x][p.y].added : astar_data[p.x][p.y].visited * 2;
 }
 
@@ -382,6 +371,10 @@ void CostMap::print_path_cost_map() {
 // print evaluation status of each cell
 void CostMap::print_search_map() {
     cout << "\nsearch map:\n";
+    for (point pt : path)
+        astar_data[pt.x][pt.y].added = 3;
+    for (point pt : waypoints)
+        astar_data[pt.x][pt.y].added = 4;
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++)
             cout << output_search({ this, j, i }) << ' ';
@@ -392,12 +385,6 @@ void CostMap::print_search_map() {
 // print the coordinates of the cells the path runs through
 void CostMap::print_path() {
     cout << "\npath coordinates:\n";
-    for (point pt : path) {
-        astar_data[pt.x][pt.y].added = 3;
-        //cout << pt.x << ',' << pt.y << " (cost = " << astar_data[pt.x][pt.y].path_cost << ")\n";
-    }
-    for (point pt : waypoints) {
-        astar_data[pt.x][pt.y].added = 4;
+    for (point pt : waypoints)
         cout << pt.x << ',' << pt.y << " (cost = " << astar_data[pt.x][pt.y].path_cost << ")\n";
-    }
 }
